@@ -8,7 +8,7 @@ var noiseInfo = [];
 var objs = [];
 var oldCameraPosition = new BABYLON.Vector3(0, 0, 0);
 
-RANGE_NOISE = [20, 20, 20]; // x, y, z
+RANGE_NOISE = [10, 10, 10]; // x, y, z
 NOISE_TRESH = 0.5
 
 // Resize the babylon engine when the window is resized
@@ -36,7 +36,7 @@ window.onload = function () {
         };
 
         engine.runRenderLoop(function () {
-            if(camera && (camera.position.x - oldCameraPosition.x >= 1|| camera.position.y - oldCameraPosition.y >= 1|| camera.position.z - oldCameraPosition.z >= 1)) {
+            if(camera && (Math.abs(camera.position.x - oldCameraPosition.x) >= 0.1|| Math.abs(camera.position.y - oldCameraPosition.y) >= 0.1|| Math.abs(camera.position.z - oldCameraPosition.z) >= 0.1)) {
                 updateNoise(oldCameraPosition, camera.position);
                 visualiseNoise();
                 oldCameraPosition = new BABYLON.Vector3(camera.position.x, camera.position.y, camera.position.z);
@@ -130,8 +130,8 @@ var visualiseNoise = function () {
     for(let i = 0; i < RANGE_NOISE[0]; i++) {
         for(let j = 0; j < RANGE_NOISE[1]; j++){
             for(let k = 0; k < RANGE_NOISE[2]; k++) {
-                // objs[i][j][k].isVisible = noiseInfo[i][j][k].value < NOISE_TRESH;
-                objs[i][j][k].position = noiseInfo[i][j][k].position;
+                objs[i][j][k].isVisible = noiseInfo[i][j][k].value >= NOISE_TRESH;
+                objs[i][j][k].position = noiseInfo[i][j][k].position; // new BABYLON.Vector3(noiseInfo[i][j][k].position.x * 1, noiseInfo[i][j][k].position.y * 1, noiseInfo[i][j][k].position.z * 1);
                 objs[i][j][k].material.diffuseColor = new BABYLON.Color3(noiseInfo[i][j][k].value, noiseInfo[i][j][k].value, noiseInfo[i][j][k].value);
             }
         }
@@ -160,7 +160,7 @@ var setupCamera = function () {
         camera.keysUpward = [32]; // space
         camera.keysDownward = [16]; // shift
 
-        camera.speed = 0.25;
+        camera.speed = 0.1;
         camera.angularSensibility = 6000.0; // higher is less sensible, default is 2000.0
 
         camera.attachControl(canvas, true);
