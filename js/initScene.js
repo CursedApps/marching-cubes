@@ -8,7 +8,7 @@ var noiseInfo = [];
 var objs = [];
 var oldCameraPosition = new BABYLON.Vector3(0, 0, 0);
 
-RANGE_NOISE = [10, 10, 10]; // x, y, z
+RANGE_NOISE = [20, 20, 20]; // x, y, z
 NOISE_TRESH = 0.5
 
 // Resize the babylon engine when the window is resized
@@ -20,12 +20,10 @@ window.addEventListener("resize", function () {
 
 
 window.onload = function () {
-
         canvas = document.getElementById("renderCanvas"); // Get the canvas element
         engine = new BABYLON.Engine(canvas, true); // Generate the BABYLON 3D engine
-
+        i = 0
         setupScene(); //Call the createScene function
-        // assetsManager = new BABYLON.AssetsManager(scene);
 
         scene.onPointerDown = function () {
             //true/false check if we're locked, faster than checking pointerlock on each single click.
@@ -37,16 +35,14 @@ window.onload = function () {
             }
         };
 
-        scene.onBeforeRenderObservable.add(function () {
-            if(camera && oldCameraPosition !== camera.position) {
-                updateNoise(oldCameraPosition);
-                visualiseNoise();
-            }
-            oldCameraPosition = new BABYLON.Vector3(camera.position.x, camera.position.y, camera.position.z);
-        });
-
         engine.runRenderLoop(function () {
-                scene.render();
+            if(camera && (camera.position.x - oldCameraPosition.x >= 1|| camera.position.y - oldCameraPosition.y >= 1|| camera.position.z - oldCameraPosition.z >= 1)) {
+                updateNoise(oldCameraPosition, camera.position);
+                visualiseNoise();
+                oldCameraPosition = new BABYLON.Vector3(camera.position.x, camera.position.y, camera.position.z);
+            }
+        
+            scene.render();
         });
 
         // Watch for browser/canvas resize events
@@ -112,25 +108,19 @@ var setupNoise = function () {
     }
 }
 
-var updateNoise = function () {
-    console.log("UPDATE")
-    let [x_min, x_max] = getMinMaxSpliceIndex(RANGE_NOISE[0], oldCameraPosition.x, camera.position.x)
-    let [y_min, y_max] = getMinMaxSpliceIndex(RANGE_NOISE[1], oldCameraPosition.y, camera.position.y)
-    let [z_min, z_max] = getMinMaxSpliceIndex(RANGE_NOISE[2], oldCameraPosition.z, camera.position.z)
-    console.log([x_min, x_max])
-    console.log([y_min, y_max])
-    console.log([z_min, z_max])
-
+var updateNoise = function (oldPos, newPos) {
     let oldNoiseInfo = noiseInfo
+    depl = newPos - oldPos;
 
     for(let i = 0; i < RANGE_NOISE[0]; i++) {
         for(let j = 0; j < RANGE_NOISE[1]; j++){
             for(let k = 0; k < RANGE_NOISE[2]; k++) {
-                if(x_min + i < 0 || x_max - i >= RANGE_NOISE[0] || y_min + j < 0 || y_max - j >= RANGE_NOISE[1] || z_min + k < 0 || z_max - k >= RANGE_NOISE[2]) {
+                idx = new BABYLON.Vector3(i,j,k);
+                delta = i + depl;
+                if (0 <= delta.x && delta.x < RANGE_NOISE[0] && 0 <= delta.y && delta.y < RANGE_NOISE[1] && 0 <= delta.z && delta.z < RANGE_NOISE[2])
+                    noiseInfo[i][j][k] = oldNoiseInfo[delta.x][delta.y][delta.z];
+                else 
                     noiseInfo[i][j][k] = calculateNoiseAtIdx(camera.position, i, j, k);
-                } else {
-                    noiseInfo[i][j][k] = oldNoiseInfo[i + x_min][j + y_min][k + z_min];
-                }
             }
         }
     }
@@ -140,6 +130,7 @@ var visualiseNoise = function () {
     for(let i = 0; i < RANGE_NOISE[0]; i++) {
         for(let j = 0; j < RANGE_NOISE[1]; j++){
             for(let k = 0; k < RANGE_NOISE[2]; k++) {
+                // objs[i][j][k].isVisible = noiseInfo[i][j][k].value < NOISE_TRESH;
                 objs[i][j][k].position = noiseInfo[i][j][k].position;
                 objs[i][j][k].material.diffuseColor = new BABYLON.Color3(noiseInfo[i][j][k].value, noiseInfo[i][j][k].value, noiseInfo[i][j][k].value);
             }
