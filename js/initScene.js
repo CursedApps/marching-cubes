@@ -8,7 +8,7 @@ var noiseInfo = [];
 var objs = [];
 var oldCameraPosition = new BABYLON.Vector3(0, 0, 0);
 
-RANGE_NOISE = [10, 10, 10]; // x, y, z
+RANGE_NOISE = [20, 20, 20]; // x, y, z
 NOISE_TRESH = 0.5
 
 // Resize the babylon engine when the window is resized
@@ -60,6 +60,7 @@ var setupScene = function () {
         setupCamera();
         setupNoise();
         visualiseNoise();
+        computeCubeMeshes();
 
         // Add lights to the scene
         var hemi = new BABYLON.HemisphericLight("hemi", new BABYLON.Vector3(0, 1, 0), scene);
@@ -80,6 +81,34 @@ var setupScene = function () {
 
         BABYLON.SceneLoader.ImportMeshAsync("", "https://assets.babylonjs.com/meshes/", "box.babylon");
 
+}
+
+var setupCamera = function () {
+    camera = new BABYLON.UniversalCamera("Camera", new BABYLON.Vector3(-10, 0, 0), scene);
+    camera.target = new BABYLON.Vector3(0, 0, 0)
+    camera.maxZ = 500
+
+    camera.lowerBetaLimit = 0.1;
+    camera.upperBetaLimit = (Math.PI / 2) * 0.9;
+
+    camera.checkCollisions = true;
+    camera.collisionRadius = new BABYLON.Vector3(1, 1, 1);
+    // eventually : camera.ellipsoid
+
+    camera._keys = [];
+    camera.keysUp = [38, 87]; // fleche haut, W
+    camera.keysDown = [40, 83]; // fleche bas, S
+
+    camera.keysLeft = [37, 65]; // fleche left, A
+    camera.keysRight = [39, 68]; // fleche right, D
+
+    camera.keysUpward = [32]; // space
+    camera.keysDownward = [16]; // shift
+
+    camera.speed = 0.1;
+    camera.angularSensibility = 6000.0; // higher is less sensible, default is 2000.0
+
+    camera.attachControl(canvas, true);
 }
 
 var setupNoise = function () {
@@ -130,38 +159,14 @@ var visualiseNoise = function () {
     for(let i = 0; i < RANGE_NOISE[0]; i++) {
         for(let j = 0; j < RANGE_NOISE[1]; j++){
             for(let k = 0; k < RANGE_NOISE[2]; k++) {
-                objs[i][j][k].isVisible = noiseInfo[i][j][k].value >= NOISE_TRESH;
-                objs[i][j][k].position = noiseInfo[i][j][k].position; // new BABYLON.Vector3(noiseInfo[i][j][k].position.x * 1, noiseInfo[i][j][k].position.y * 1, noiseInfo[i][j][k].position.z * 1);
+                // objs[i][j][k].isVisible = noiseInfo[i][j][k].value >= NOISE_TRESH;
+                objs[i][j][k].position = noiseInfo[i][j][k].position;
                 objs[i][j][k].material.diffuseColor = new BABYLON.Color3(noiseInfo[i][j][k].value, noiseInfo[i][j][k].value, noiseInfo[i][j][k].value);
             }
         }
     }
 }
 
-var setupCamera = function () {
-        camera = new BABYLON.UniversalCamera("Camera", new BABYLON.Vector3(-10, 0, 0), scene);
-        camera.target = new BABYLON.Vector3(0, 0, 0)
-        camera.maxZ = 500
+var computeCubeMeshes = function () {
 
-        camera.lowerBetaLimit = 0.1;
-        camera.upperBetaLimit = (Math.PI / 2) * 0.9;
-
-        camera.checkCollisions = true;
-        camera.collisionRadius = new BABYLON.Vector3(1, 1, 1);
-        // eventually : camera.ellipsoid
-
-        camera._keys = [];
-        camera.keysUp = [38, 87]; // fleche haut, W
-        camera.keysDown = [40, 83]; // fleche bas, S
-
-        camera.keysLeft = [37, 65]; // fleche left, A
-        camera.keysRight = [39, 68]; // fleche right, D
-
-        camera.keysUpward = [32]; // space
-        camera.keysDownward = [16]; // shift
-
-        camera.speed = 0.1;
-        camera.angularSensibility = 6000.0; // higher is less sensible, default is 2000.0
-
-        camera.attachControl(canvas, true);
 }
