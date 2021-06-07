@@ -1,6 +1,6 @@
 
 // FROM http://paulbourke.net/geometry/polygonise/
-const SCALE = 4
+const SCALE = 7
 
 let triTable = [
   [],
@@ -276,7 +276,6 @@ let edgesCoords = [
   [-0.5 * SCALE, 0          , 0.5 * SCALE  ]  // edge 11
 ];
 
-
 let buildTriangle = function(meshIndex, scene) {
     let vertices = triTable[meshIndex];
     let positions = [];
@@ -294,7 +293,6 @@ let buildTriangle = function(meshIndex, scene) {
     vertexData.indices = indices;
     vertexData.applyToMesh(customMesh);
 
-    // customMesh.convertToUnIndexedMesh();
     customMesh.freezeWorldMatrix();
     
     let material = new BABYLON.StandardMaterial(scene);
@@ -302,4 +300,13 @@ let buildTriangle = function(meshIndex, scene) {
     customMesh.material = material;
 
     return customMesh;
+}
+
+let preComputeCubeMeshes = function (scene) {
+    meshes = []
+    for(let i =0; i< 2**8; i++){
+        meshes.push(buildTriangle(i, scene));
+    }
+
+    return meshes
 }
