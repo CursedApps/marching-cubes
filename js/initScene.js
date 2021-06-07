@@ -8,8 +8,8 @@ var noiseInfo = [];
 var objs = [];
 var oldCameraPosition = new BABYLON.Vector3(0, 0, 0);
 
-RANGE_NOISE = [20, 20, 20]; // x, y, z
-NOISE_TRESH = 0.5
+const RANGE_NOISE = [10, 10, 10]; // x, y, z
+const NOISE_TRESH = 0.5
 
 // Resize the babylon engine when the window is resized
 window.addEventListener("resize", function () {
@@ -36,9 +36,8 @@ window.onload = function () {
         };
 
         engine.runRenderLoop(function () {
-            if(camera && (Math.abs(camera.position.x - oldCameraPosition.x) >= 0.1|| Math.abs(camera.position.y - oldCameraPosition.y) >= 0.1|| Math.abs(camera.position.z - oldCameraPosition.z) >= 0.1)) {
+            if(camera && (Math.abs(camera.position.x - oldCameraPosition.x) >= SCALE / 2|| Math.abs(camera.position.y - oldCameraPosition.y) >= SCALE / 2|| Math.abs(camera.position.z - oldCameraPosition.z) >= SCALE / 2)) {
                 updateNoise(oldCameraPosition, camera.position);
-                visualiseNoise();
                 oldCameraPosition = new BABYLON.Vector3(camera.position.x, camera.position.y, camera.position.z);
             }
         
@@ -56,10 +55,12 @@ var setupScene = function () {
         // Create the scene space
         scene = new BABYLON.Scene(engine);
 
+        scene.useGeometryIdsMap  = true;
+
         // Add a camera to the scene and attach it to the canvas
         setupCamera();
         setupNoise();
-        visualiseNoise();
+        // visualiseNoise();
         computeCubeMeshes();
 
         // Add lights to the scene
@@ -78,9 +79,6 @@ var setupScene = function () {
         shadowGenerator.usePercentageCloserFiltering = true;
 
         scene.shadowsEnabled = true;
-
-        BABYLON.SceneLoader.ImportMeshAsync("", "https://assets.babylonjs.com/meshes/", "box.babylon");
-
 }
 
 var setupCamera = function () {
@@ -113,43 +111,75 @@ var setupCamera = function () {
 
 var setupNoise = function () {
     noise.seed(Math.random());
-    var segments = 32
-    var diameter = 0.1
 
     for(let i = 0; i < RANGE_NOISE[0]; i++) {
         noiseInfo.push([]);
-        objs.push([]);
-
         for(let j = 0; j < RANGE_NOISE[1]; j++) {
             noiseInfo[i].push([]);
-            objs[i].push([]);
-
             for(let k = 0; k < RANGE_NOISE[2]; k++) {
                 noiseInfo[i][j].push(calculateNoiseAtIdx(camera.position, i, j, k));
+            }
+        }
+    }
 
-                var sphere = BABYLON.Mesh.CreateSphere("sphere", segments, diameter, scene);
-                var material = new BABYLON.StandardMaterial(scene);
-                material.diffuseColor = new BABYLON.Color3(0, 0, 0);
-                sphere.material = material;
-                objs[i][j].push(sphere);
+    for(let i = 0; i < RANGE_NOISE[0] - 1; i++) {
+        for(let j = 0; j < RANGE_NOISE[1] - 1; j++) {
+            for(let k = 0; k < RANGE_NOISE[2] - 1; k++) {
+
+                let vIdx = getCubeIdx(i, j, k, noiseInfo)
+
+                let newMesh = buildTriangle(vIdx, scene)
+                newMesh.position = new BABYLON.Vector3(noiseInfo[i][j][k].position.x + SCALE/2, noiseInfo[i][j][k].position.y + SCALE/2, noiseInfo[i][j][k].position.z + SCALE/2)
+                noiseInfo[i][j][k].mesh = newMesh
             }
         }
     }
 }
 
 var updateNoise = function (oldPos, newPos) {
-    let oldNoiseInfo = noiseInfo
-    depl = newPos - oldPos;
 
+    let oldNoiseInfo = noiseInfo
+    let oldPosV = new BABYLON.Vector3(oldPos.x, oldPos.y, oldPos.z)
+    let newPosV = new BABYLON.Vector3(newPos.x, newPos.y, newPos.z)
+    let depl =  newPosV.subtract(oldPosV).floor();
+
+    scene.blockfreeActiveMeshesAndRenderingGroups = true;
     for(let i = 0; i < RANGE_NOISE[0]; i++) {
         for(let j = 0; j < RANGE_NOISE[1]; j++){
             for(let k = 0; k < RANGE_NOISE[2]; k++) {
+
                 idx = new BABYLON.Vector3(i,j,k);
-                delta = i + depl;
+                delta = idx + depl;
+
+                if (oldNoiseInfo[i][j][k].mesh) {
+                    oldNoiseInfo[i][j][k].mesh.dispose()
+                }
+
+
                 if (0 <= delta.x && delta.x < RANGE_NOISE[0] && 0 <= delta.y && delta.y < RANGE_NOISE[1] && 0 <= delta.z && delta.z < RANGE_NOISE[2])
                     noiseInfo[i][j][k] = oldNoiseInfo[delta.x][delta.y][delta.z];
-                else 
+
+                else {
                     noiseInfo[i][j][k] = calculateNoiseAtIdx(camera.position, i, j, k);
+                }
+            }
+        }
+    }
+    scene.blockfreeActiveMeshesAndRenderingGroups = false;
+
+    for(let i = 0; i < RANGE_NOISE[0] - 1; i++) {
+        for(let j = 0; j < RANGE_NOISE[1] - 1; j++) {
+            for(let k = 0; k < RANGE_NOISE[2] - 1; k++) {
+
+                if(noiseInfo[i][j][k].mesh){
+                    break
+                }
+
+                let vIdx = getCubeIdx(i, j, k, noiseInfo)
+
+                let newMesh = buildTriangle(vIdx, scene)
+                newMesh.position = new BABYLON.Vector3(noiseInfo[i][j][k].position.x + SCALE/2, noiseInfo[i][j][k].position.y + SCALE/2, noiseInfo[i][j][k].position.z + SCALE/2)
+                noiseInfo[i][j][k].mesh = newMesh
             }
         }
     }
@@ -159,9 +189,16 @@ var visualiseNoise = function () {
     for(let i = 0; i < RANGE_NOISE[0]; i++) {
         for(let j = 0; j < RANGE_NOISE[1]; j++){
             for(let k = 0; k < RANGE_NOISE[2]; k++) {
-                // objs[i][j][k].isVisible = noiseInfo[i][j][k].value >= NOISE_TRESH;
-                objs[i][j][k].position = noiseInfo[i][j][k].position;
-                objs[i][j][k].material.diffuseColor = new BABYLON.Color3(noiseInfo[i][j][k].value, noiseInfo[i][j][k].value, noiseInfo[i][j][k].value);
+
+                // objs[i][j][k].position = new BABYLON.Vector3(noiseInfo[i][j][k].position.x, noiseInfo[i][j][k].position.y, noiseInfo[i][j][k].position.z)
+                // objs[i][j][k].material.diffuseColor = new BABYLON.Color3(noiseInfo[i][j][k].value, noiseInfo[i][j][k].value, noiseInfo[i][j][k].value);
+
+                if ((i >= RANGE_NOISE[0] - 1) || (j >= RANGE_NOISE[1] - 1)|| (k >= RANGE_NOISE[2] - 1))
+                    break
+
+                vIdx = getCubeIdx(i, j, k, noiseInfo)
+                objs[i][j][k] = buildTriangle(vIdx, scene)
+                objs[i][j][k].position = new BABYLON.Vector3(noiseInfo[i][j][k].position.x + 0.5, noiseInfo[i][j][k].position.y + 0.5, noiseInfo[i][j][k].position.z + 0.5)
             }
         }
     }

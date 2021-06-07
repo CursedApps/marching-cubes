@@ -1,5 +1,7 @@
 
 // FROM http://paulbourke.net/geometry/polygonise/
+const SCALE = 4
+
 let triTable = [
   [],
   [0, 8, 3],
@@ -260,41 +262,44 @@ let triTable = [
 ];
 
 let edgesCoords = [
-  [0.5, -0.5, 0],
-  [0, -0.5, -0.5],
-  [-0.5, -0.5, 0],
-  [0, -0.5, 0.5],
-  [0.5, 0.5, 0],
-  [0, 0.5, -0.5],
-  [-0.5, 0.5, 0],
-  [0, 0.5, 0.5],
-  [0.5, 0, 0.5],
-  [0.5, 0, -0.5],
-  [-0.5, 0, -0.5],
-  [-0.5, 0, 0.5]
+  [0           , -0.5 * SCALE, -0.5 * SCALE], // edge 0
+  [0.5 * SCALE , -0.5 * SCALE, 0           ], // edge 1
+  [0           , -0.5 * SCALE, 0.5 * SCALE ], // edge 2
+  [-0.5 * SCALE, -0.5 * SCALE, 0           ], // edge 3
+  [0           , 0.5 * SCALE, -0.5 * SCALE ], // edge 4
+  [0.5 * SCALE , 0.5 * SCALE, 0            ], // edge 5
+  [0           , 0.5 * SCALE, 0.5 * SCALE  ], // edge 6
+  [-0.5 * SCALE, 0.5 * SCALE, 0            ], // edge 7
+  [-0.5 * SCALE, 0          , -0.5 * SCALE ], // edge 8
+  [0.5 * SCALE , 0          , -0.5 * SCALE ], // edge 9
+  [0.5 * SCALE , 0          , 0.5 * SCALE  ], // edge 10
+  [-0.5 * SCALE, 0          , 0.5 * SCALE  ]  // edge 11
 ];
 
 
 let buildTriangle = function(meshIndex, scene) {
-  let vertices = triTable[meshIndex];
-  let positions = [];
+    let vertices = triTable[meshIndex];
+    let positions = [];
+    
+    for (v of vertices) {
+        positions.push(...edgesCoords[v]);
+    }
 
-  for (v in vertices) {
-    positions = positions.concat(edgesCoords[v]);
-  }
+    indices = [...Array(vertices.length).keys()];
 
-  indices = [...Array(vertices.length).keys()];
+    let customMesh = new BABYLON.Mesh("custom", scene);
+    
+    let vertexData = new BABYLON.VertexData();
+    vertexData.positions = positions;
+    vertexData.indices = indices;
+    vertexData.applyToMesh(customMesh);
 
-  var customMesh = new BABYLON.Mesh("custom", scene);
+    // customMesh.convertToUnIndexedMesh();
+    customMesh.freezeWorldMatrix();
+    
+    let material = new BABYLON.StandardMaterial(scene);
+    material.backFaceCulling = false;
+    customMesh.material = material;
 
-  var vertexData = new BABYLON.VertexData();
-  vertexData.positions = positions;
-  vertexData.indices = indices;
-  vertexData.applyToMesh(customMesh);
-
-  var material = new BABYLON.StandardMaterial(scene);
-  material.backFaceCulling = false;
-  customMesh.material = material;
-
-  return customMesh;
+    return customMesh;
 }
