@@ -288,16 +288,33 @@ let buildTriangle = function(meshIndex, scene) {
 
     let customMesh = new BABYLON.Mesh("custom", scene);
     
-    let vertexData = new BABYLON.VertexData();
+    // let vertexData = new BABYLON.VertexData();
+    // vertexData.positions = positions;
+    // vertexData.indices = indices;
+    var normals = [];
+    
+    BABYLON.VertexData.ComputeNormals(positions, indices, normals);
+    
+    var vertexData = new BABYLON.VertexData();
+
     vertexData.positions = positions;
     vertexData.indices = indices;
-    vertexData.applyToMesh(customMesh);
+    vertexData.normals = normals; //Assignment of normal to vertexData added
 
+    vertexData.applyToMesh(customMesh, true);
+
+    customMesh.isVisible = false;
     customMesh.freezeWorldMatrix();
+
+    customMesh = customMesh.createNormals(true)
     
     let material = new BABYLON.StandardMaterial(scene);
-    material.backFaceCulling = false;
+    material.diffuseColor = new BABYLON.Color3(0.23, 0, 0.68);
+    material.specularColor = new BABYLON.Color3(1, 0.41, 0.71);
+    material.ambientColor = new BABYLON.Color3(0, 0.33, 1);
     customMesh.material = material;
+
+    material.backFaceCulling = false;
 
     return customMesh;
 }

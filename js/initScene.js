@@ -9,10 +9,12 @@ var objs = [];
 var oldCameraPosition = new BABYLON.Vector3(0, 0, 0);
 var baseMeshes = [];
 var box;
+var point;
+var spot;
 
 const RANGE_NOISE = [10, 10, 10]; // x, y, z
 const NOISE_TRESH = 0.4
-
+const COLOR = new BABYLON.Color3(0.45, 0.6, 1)
 // Resize the babylon engine when the window is resized
 window.addEventListener("resize", function () {
         if (engine) {
@@ -43,6 +45,10 @@ window.onload = function () {
                 oldCameraPosition = new BABYLON.Vector3(camera.position.x, camera.position.y, camera.position.z);
             }
             box.position = camera.position
+            point.position = camera.position
+            // spot.setDirectionToTarget(camera.target) 
+            // BABYLON.Color3.HSVtoRGBToRef(COLOR.r, (camera.position.y + 100) / 2, COLOR.b, scene.fogColor);
+            // scene.fogColor = new BABYLON.Color3(new BABYLON.Color3(COLOR.r * Math.min((5+camera.position.y)/10, 1), COLOR.g * Math.min((5+camera.position.y)/10, 1), COLOR.b * ((5+camera.position.y)/10))
             scene.render();
         });
 
@@ -56,7 +62,6 @@ var setupScene = function () {
 
         // Create the scene space
         scene = new BABYLON.Scene(engine);
-
         scene.useGeometryIdsMap  = true;
 
         // Add a camera to the scene and attach it to the canvas
@@ -66,37 +71,77 @@ var setupScene = function () {
         setupNoise();
 
         // Add lights to the scene
-        var hemi = new BABYLON.HemisphericLight("hemi", new BABYLON.Vector3(0, 1, 0), scene);
-        hemi.intensity = 0.6;
-        hemi.diffuse = new BABYLON.Color3(0, 0.33, 1);
-        // hemi.specular = new BABYLON.Color3(1, 0.89, 0.65);
-        hemi.groundColor = new BABYLON.Color3(0.47, 0, 0.70);
+        // var hemi = new BABYLON.HemisphericLight("hemi", new BABYLON.Vector3(0, 1, 0), scene);
+        // hemi.intensity = 0
+        // hemi.diffuse = new BABYLON.Color3(0.47, 0, 0.70); // bleu
+        // hemi.specular = new BABYLON.Color3(0.1, 0.041, 0.071);
+        // hemi.groundColor = new BABYLON.Color3(0, 0.33, 1);
 
-        var dir = new BABYLON.DirectionalLight("dir", new BABYLON.Vector3(-1, -1, 1), scene);
-        dir.position = new BABYLON.Vector3(500, 250, -500);
-        dir.intensity = 0.6
+        // var dir = new BABYLON.DirectionalLight("dir", new BABYLON.Vector3(-1, -1, 1), scene);
+        // dir.position = new BABYLON.Vector3(500, 250, -500);
+        // dir.intensity = 0
 
-        shadowGenerator = new BABYLON.ShadowGenerator(4096, dir);
-        shadowGenerator.normalBias = 0.02;
-        shadowGenerator.usePercentageCloserFiltering = true;
+        point = new BABYLON.PointLight("sub", new BABYLON.Vector3(0,0,-10), scene)
+        point.intensity = 5
+        point.diffuse = new BABYLON.Color3(0.47, 0, 0.70); // bleu
+        point.specular = new BABYLON.Color3(0.1, 0.041, 0.071);
+
+        // spot = new BABYLON.SpotLight("spot", new BABYLON.Vector3(0,0,-10), new BABYLON.Vector3(0,0,0), 0.5, 3, scene)
+        // spot.falloffType = BABYLON.FALLOFF_PHYSICAL
+
+        // shadowGenerator = new BABYLON.ShadowGenerator(4096, dir);
+        // shadowGenerator.normalBias = 0.02;
+        // shadowGenerator.usePercentageCloserFiltering = true;
 
         scene.shadowsEnabled = true;
         scene.fogMode = BABYLON.Scene.FOGMODE_EXP;
-        scene.fogDensity = Math.cos(0.3) / 10
-        scene.fogStart = 5.0;
+        scene.fogDensity = 0.09;
+        scene.fogStart = 10.0;
         scene.fogEnd = 15.0;
-        scene.fogColor = new BABYLON.Color3(0.29, 1, 0.80);
+        scene.fogColor = new BABYLON.Color3(0.45, 0.94, 1);
 }
 
 var setupSkybox = function () { 
+    let boxSize = SCALE * RANGE_NOISE[0]
     box = BABYLON.MeshBuilder.CreateBox("box", {size: RANGE_NOISE[0] * 5}, scene);
     let material = new BABYLON.StandardMaterial(scene);
     material.backFaceCulling = false;
     box.material = material;
+
+    const particleSystem = new BABYLON.ParticleSystem("particles", 2000);
+    particleSystem.particleTexture = new BABYLON.Texture("./assets/textures_flare.png");
+    particleSystem.emitter = box;
+    particleSystem.minEmitBox = new BABYLON.Vector3(-boxSize/2, -boxSize/2, -boxSize/2); // Starting all from
+    particleSystem.maxEmitBox = new BABYLON.Vector3(boxSize/2, boxSize/2, boxSize/2); // To...
+
+    particleSystem.color1 = new BABYLON.Color4(1, 0.83, 0.98, 0.5);
+    particleSystem.color2 = new BABYLON.Color4(0.7, 0.38, 0.86, 0.5);
+    particleSystem.colorDead = new BABYLON.Color4(0, 0, 0.2, 0.0);
+
+    particleSystem.minSize = 0.1;
+    particleSystem.maxSize = 0.5;
+
+    particleSystem.minLifeTime = 0.3;
+    particleSystem.maxLifeTime = 1.5;
+
+    particleSystem.emitRate = 1250;
+    
+    particleSystem.blendMode = BABYLON.ParticleSystem.BLENDMODE_ONEONE;
+    
+    var noiseTexture = new BABYLON.NoiseProceduralTexture("perlin", 256, scene);
+    noiseTexture.animationSpeedFactor = 10;
+    noiseTexture.persistence = 2;
+    noiseTexture.brightness = 0.5;
+    noiseTexture.octaves = 2;
+
+    particleSystem.noiseTexture = noiseTexture;
+    particleSystem.noiseStrength = new BABYLON.Vector3(100, 100, 100);
+
+    particleSystem.start();
 }
 
 var setupCamera = function () {
-    camera = new BABYLON.UniversalCamera("Camera", new BABYLON.Vector3(-10, 0, 0), scene);
+    camera = new BABYLON.UniversalCamera("Camera", new BABYLON.Vector3(0, 0, -10), scene);
     camera.target = new BABYLON.Vector3(0, 0, 0)
     camera.maxZ = 500
 
@@ -144,6 +189,7 @@ var setupNoise = function () {
 
                 let newMesh = baseMeshes[vIdx].createInstance("mesh")
                 newMesh.position = new BABYLON.Vector3(noiseInfo[i][j][k].position.x + SCALE/2, noiseInfo[i][j][k].position.y + SCALE/2, noiseInfo[i][j][k].position.z + SCALE/2)
+                newMesh.isVisible = true
                 noiseInfo[i][j][k].mesh = newMesh
             }
         }
