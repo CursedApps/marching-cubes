@@ -13,7 +13,7 @@ var point;
 var spot;
 var assetsManager;
 var isSimulationRunning = false;
-
+var totalTime = 0;
 var poissonsMeshes = {};
 var plantsMeshes = {};
 
@@ -369,8 +369,9 @@ var updateNoise = function (oldPos, newPos) {
 var loadFish = function (newMeshes, key) {
   var parent = new BABYLON.Mesh("dummy", scene);
   let meshes = newMeshes.meshes;
+  
   for (let mesh of meshes) {
-    mesh.rotation.y = Math.PI / 2;
+    // mesh.rotation.y = Math.PI / 2
     parent.addChild(mesh);
     mesh.isVisible = false;
   }
@@ -483,6 +484,10 @@ var setupSimulation = function (data) {
       for (let c of pMesh._children) {
         c.isVisible = true;
       }
+
+      let rot = randomNumber(-Math.PI / 2, Math.PI / 2);
+      pMesh.rotation.y = rot
+
       pMesh.scaling.x = p.transformation[0][0];
       pMesh.scaling.y = p.transformation[1][1];
       pMesh.scaling.z = p.transformation[2][2];
@@ -497,7 +502,10 @@ var setupSimulation = function (data) {
         mesh: pMesh,
         speed: p.vitesse,
         min: p.profondeurMin,
-        max: p.profondeurMax
+        max: p.profondeurMax,
+        offset: randomNumber(0,1),
+        amp: randomNumber(0.01, 0.05),
+        freq: randomNumber(0.005, 0.01)
       });
     }
   }
@@ -551,9 +559,8 @@ var updateSimulation = function(dt) {
 
         } else {
             dt = scene.getEngine().getDeltaTime() / 1000
-            x = f.mesh.position.x
-            newX = x + dt * f.speed
-            f.mesh.position = new BABYLON.Vector3(newX, f.mesh.position.y, f.mesh.position.z);
+            totalTime += dt
+            f.mesh.position = new BABYLON.Vector3(f.mesh.position.x + f.mesh.forward.x * dt * f.speed, f.mesh.position.y + f.amp*Math.sin(f.freq*totalTime + f.offset), f.mesh.position.z + f.mesh.forward.z * dt * f.speed);
         }
     }
     // make fish move at speed
