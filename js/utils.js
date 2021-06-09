@@ -46,7 +46,7 @@ var updateFogColor = function(cameraPosition) {
 }
 
 
-var randomNumber = function(min, max) { 
+var rand = function(min, max) { 
     return Math.random() * (max - min) + min;
 } 
 
@@ -81,4 +81,32 @@ var isOOB = function(position, cameraPos) {
 
     return minBoundX > position.x || position.x > maxBoundX || minBoundY > position.y || position.y > maxBoundY || minBoundZ > position.z || position.z > maxBoundZ
 
+}
+
+var requestPointerLock = function(canvas) {
+    return canvas.requestPointerLock ||
+            canvas.msRequestPointerLock ||
+            canvas.mozRequestPointerLock ||
+            canvas.webkitRequestPointerLock;
+}
+
+var hasCameraMoved = function(camera) {
+    return camera &&
+    (
+        Math.abs(camera.position.x - oldCameraPosition.x) >= SCALE / 3 ||
+        Math.abs(camera.position.y - oldCameraPosition.y) >= SCALE / 3 ||
+        Math.abs(camera.position.z - oldCameraPosition.z) >= SCALE / 3
+    )
+}
+
+var onProcessFileCallback = function (file, name, extension) {
+    if (filesInput._filesToLoad && filesInput._filesToLoad.length === 1 && extension) {
+        BABYLON.Tools.ReadFile(file, function (dataText) {
+            let simBtn = document.getElementById("simBtn");
+            simBtn.disabled = false;
+            var data = JSON.parse(dataText);
+            setupSimulation(data);
+        });
+    }
+    return false;
 }
