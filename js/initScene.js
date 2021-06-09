@@ -443,7 +443,7 @@ var setupSimulation = function (data) {
 
   for (let p of simPlantes) {
     cpt = 0;
-    while (cpt < 200) {
+    while (cpt < 50) {
         cpt++
         let pMesh = plantsMeshes[p.nom].clone("plant");
         pMesh.setEnabled(true);
@@ -477,7 +477,7 @@ var setupSimulation = function (data) {
 
   for (let p of simPoissons) {
     cpt = 0;
-    while (cpt < 100) {
+    while (cpt < 25) {
       cpt++;
       let pMesh = poissonsMeshes[p.nom].clone("fish");
       pMesh.setEnabled(true);
