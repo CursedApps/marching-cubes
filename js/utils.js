@@ -44,3 +44,27 @@ var updateFogColor = function(cameraPosition) {
     }
     return fogColor
 }
+
+
+var randomNumber = function(min, max) { 
+    return Math.random() * (max - min) + min;
+} 
+
+getHeightAtPoint = function(x, z, show = true) {
+
+    var origin = new BABYLON.Vector3(x, -1, z)
+    var forward = new BABYLON.Vector3(0, 1, 0)
+
+    var length = SCALE
+
+    var ray = new BABYLON.Ray(origin, forward, length)
+
+    if(show) {
+        let rayHelper = new BABYLON.RayHelper(ray);
+        rayHelper.show(scene);
+    }
+
+    var hit = scene.pickWithRay(ray)
+
+    return hit.distance - 1
+}

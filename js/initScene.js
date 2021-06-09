@@ -12,6 +12,10 @@ var box;
 var point;
 var spot;
 var assetsManager;
+var envMeshes;
+
+var activeFish = []
+var activePlants = []
 
 const RANGE_NOISE = [10, 10, 10]; // x, y, z
 const NOISE_TRESH = 0.4
@@ -32,9 +36,18 @@ window.onload = function () {
         canvas = document.getElementById("renderCanvas"); // Get the canvas element
         engine = new BABYLON.Engine(canvas, true); // Generate the BABYLON 3D engine
 
+        var targetNode = document.getElementById('splashscreen');
+        var observer = new MutationObserver(function () {
+                if (targetNode.style.display == 'none') {
+                        addUI();
+                }
+        });
+
+        observer.observe(targetNode, { attributes: true, childList: true });
+
         setupScene();
         assetsManager = new BABYLON.AssetsManager(scene);
-        loadEnvMeshes()
+        envMeshes = loadEnvMeshes()
 
         scene.onPointerDown = function () {
             //true/false check if we're locked, faster than checking pointerlock on each single click.
@@ -61,13 +74,85 @@ window.onload = function () {
         window.addEventListener("resize", function () {
                 engine.resize();
         });
+};
+
+
+var addUI = function () {
+  let input = document.getElementById("input");
+
+  if (!input) {
+          input = document.createElement("input");
+          input.type = "file";
+          input.style.position = "absolute";
+          input.style.right = "20px";
+          input.style.top = "60px";
+          input.style.zIndex = "2"
+          input.accept = ".json,.png";
+          document.body.appendChild(input);
+  }
+
+  // Files input
+  var filesInput = new BABYLON.FilesInput(engine, null, null, null, null, null, function () { BABYLON.Tools.ClearLogCache() }, function () { }, null);
+  filesInput.onProcessFileCallback = (function (file, name, extension) {
+          if (filesInput._filesToLoad && filesInput._filesToLoad.length === 1 && extension) {
+                  BABYLON.Tools.ReadFile(file, function (dataText) {
+                          let simBtn = document.getElementById("simBtn")
+                          simBtn.disabled = false
+                          var data = JSON.parse(dataText);
+                          setupSimulation(data);
+                  });
+          }
+          return false;
+  }).bind(this);
+
+  input.addEventListener('click', function(event) {
+          event.target.files = null
+          event.target.value = null
+          filesToLoad = null
+  }, false);
+
+  input.addEventListener('change', function (event) {
+          let simBtn = document.getElementById("simBtn")
+          simBtn.disabled = true
+          clearSimulation()
+          var filestoLoad;
+          // Handling files from input files
+          if (event && event.target && event.target.files) {
+            filesToLoad = event.target.files;
+          }
+          filesInput.loadFiles(event);
+  }, false);
+
+  let simBtn = document.getElementById("simBtn")
+  if (!simBtn) {
+          simBtn = document.createElement("button");
+          simBtn.id = "simBtn"
+          simBtn.type = "button";
+          simBtn.textContent = "Populate!"
+          simBtn.style.zIndex = "2"
+          simBtn.disabled = true
+          document.body.appendChild(simBtn);
+          simBtn.style.right = `${5 + input.getBoundingClientRect().width - simBtn.getBoundingClientRect().width}px`
+          simBtn.style.top = `${simBtn.getBoundingClientRect().top + 20}px`
+  }
+
+  simBtn.addEventListener("click", function () {
+      isSimulationRunning = true
+  });
 }
+
 
 var setupScene = function () {
 
         // Create the scene space
         scene = new BABYLON.Scene(engine);
         scene.useGeometryIdsMap  = true;
+
+        scene.executeWhenReady(function () {
+          // Remove loader
+          var loader = document.querySelector("#splashscreen");
+          loader.style.display = "none";
+        });
 
         // Add a camera to the scene and attach it to the canvas
         baseMeshes = preComputeCubeMeshes(scene)
@@ -98,13 +183,13 @@ var setupScene = function () {
         // shadowGenerator.normalBias = 0.02;
         // shadowGenerator.usePercentageCloserFiltering = true;
 
-        scene.shadowsEnabled = true;
+        // scene.shadowsEnabled = true;
         scene.fogMode = BABYLON.Scene.FOGMODE_EXP;
         scene.fogDensity = 0.09;
         scene.fogStart = 10.0;
         scene.fogEnd = 15.0;
         scene.fogColor = new BABYLON.Color3(0.45, 0.94, 1);
-}
+};
 
 var setupSkybox = function () { 
     let boxSize = SCALE * RANGE_NOISE[0]
@@ -143,7 +228,7 @@ var setupSkybox = function () {
     particleSystem.noiseStrength = new BABYLON.Vector3(100, 100, 100);
 
     particleSystem.start();
-}
+};
 
 var setupCamera = function () {
     camera = new BABYLON.UniversalCamera("Camera", new BABYLON.Vector3(0, 0, -10), scene);
@@ -171,7 +256,7 @@ var setupCamera = function () {
     camera.angularSensibility = 6000.0; // higher is less sensible, default is 2000.0
 
     camera.attachControl(canvas, true);
-}
+};
 
 var setupNoise = function () {
     noise.seed(Math.random());
@@ -185,7 +270,7 @@ var setupNoise = function () {
             }
         }
     }
-}
+};
 
 var updateNoise = function (oldPos, newPos) {
 
@@ -234,21 +319,20 @@ var updateNoise = function (oldPos, newPos) {
             }
         }
     }
-}
+};
 
-var loadEnvMeshes = function () {
+var loadEnvMeshes = async function () {
     poissons = {};
 
     for (let p of meshLUT.POISSONS) {
-      BABYLON.SceneLoader.ImportMesh("", p.path, p.scene, scene, function (newMeshes) {
-        newMeshes.forEach((mesh) => {
-          mesh.isVisible = false;
-          if (mesh.material) {
-            mesh.material.backFaceCulling = false;
-          }
-        });
-  
-        poissons[p.key] = newMeshes;
+      await BABYLON.SceneLoader.AppendAsync("", p.path, p.scene, scene).then(function (newMeshes) {
+        newMesh = BABYLON.Mesh.MergeMeshes(newMeshes, true, false, undefined, false, true);
+        if (mesh.material) {
+          mesh.material.backFaceCulling = false;
+        }
+        newMesh.rotation.y  =  Math.PI / 2;
+        newMesh.isVisible = false;
+        poissons[p.key] = newMesh
       });
     }
 
@@ -257,19 +341,87 @@ var loadEnvMeshes = function () {
     for (let p of meshLUT.PLANTES) {
       BABYLON.SceneLoader.ImportMesh("", p.path, p.scene, scene, function (newMeshes) {
         newMeshes.forEach((mesh) => {
-        // mesh.isVisible = false;
-        if (mesh.material) {
-          mesh.material.backFaceCulling = false;
-        }
+          if (mesh.material) {
+            mesh.isVisible = false;
+            mesh.material.backFaceCulling = false;
+          }
         });
-
-        poissons[p.key] = newMeshes;
+        
+        newMesh = BABYLON.Mesh.MergeMeshes(newMeshes, true, false, undefined, false, true);
+        newMesh.isVisible = false;
+        plantes[p.key] = newMesh
       });
     }
-
 
     return {
         POISSONS: poissons,
         PLANTES: plantes
     }
 };
+
+var clearSimulation = function() {
+  for(let f of activeFish) {
+    f.mesh.dispose()
+  }
+
+  activeFish = []
+
+
+  for(let p of activePlants){
+    p.mesh.dispose()
+  }
+
+  activePlants = []
+}
+
+var setupSimulation = function(data) {
+  alert("SETUP SIM!")
+
+  let simulation = data.aquarium
+
+  let simPoissons = simulation.poissons
+  let simPlantes = simulation.plantes
+
+  for(let p of simPoissons) {
+    let mesh = envMeshes.POISSONS[p.nom].createInstance("fish")
+    alert("CREATE FISH!")
+    // mesh.scaling.x = p.transformation[0][0]
+    // mesh.scaling.y = p.transformation[1][1]
+    // mesh.scaling.z = p.transformation[2][2]
+    // mesh.computeWorldMatrix()
+
+    // mesh.position = new BABYLON.Vector3(camera.position.x - SCALE/2, randomNumber(camera.position.y - SCALE/2, camera.position.y + SCALE/2), randomNumber(camera.position.z - SCALE/2, camera.position.z + SCALE/2) )
+    mesh.position = new BABYLON.Vector3(0,0,0)
+    mesh.isVisible = true
+    activeFish.push({
+      mesh: mesh,
+      speed: p.vitesse,
+    })
+  }
+
+  for(let p of simPlantes) {
+    let mesh = envMeshes.PLANTES[p.nom].createInstance("plant") 
+    // mesh.scaling.x = p.transformation[0][0]
+    // mesh.scaling.y = p.transformation[1][1]
+    // mesh.scaling.z = p.transformation[2][2]
+    // mesh.computeWorldMatrix()
+
+    let x,y,z = 0
+
+    do {
+      x = randomNumber(camera.position.x - SCALE/2, camera.position.x + SCALE/2);
+      z = randomNumber(camera.position.z - SCALE/2, camera.position.z + SCALE/2);
+
+      y = getHeightAtPoint(x, z);
+  } while (y > camera.position.z - SCALE/2);
+
+
+    mesh.position = new BABYLON.Vector3(x, y, z)
+    // mesh.isVisible = true
+    activePlants.push({
+      mesh: mesh
+    })
+  }
+
+  simBtn.textContent = "DONE SIM!"
+}
