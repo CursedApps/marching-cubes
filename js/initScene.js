@@ -11,10 +11,15 @@ var baseMeshes = [];
 var box;
 var point;
 var spot;
+var assetsManager;
 
 const RANGE_NOISE = [10, 10, 10]; // x, y, z
 const NOISE_TRESH = 0.4
-const COLOR = new BABYLON.Color3(0.45, 0.6, 1)
+const COLOR_SHALLOW = new BABYLON.Color3(0.45, 1, 0.88)
+const COLOR_START = new BABYLON.Color3(0.45, 0.6, 1)
+const COLOR_DEEP = new BABYLON.Color3(0.07, 0, 0.14)
+const MIN_DEPTH = -100
+const MAX_DEPTH = 100
 // Resize the babylon engine when the window is resized
 window.addEventListener("resize", function () {
         if (engine) {
@@ -26,8 +31,10 @@ window.addEventListener("resize", function () {
 window.onload = function () {
         canvas = document.getElementById("renderCanvas"); // Get the canvas element
         engine = new BABYLON.Engine(canvas, true); // Generate the BABYLON 3D engine
-        i = 0
-        setupScene(); //Call the createScene function
+
+        setupScene();
+        assetsManager = new BABYLON.AssetsManager(scene);
+        loadEnvMeshes()
 
         scene.onPointerDown = function () {
             //true/false check if we're locked, faster than checking pointerlock on each single click.
@@ -46,9 +53,7 @@ window.onload = function () {
             }
             box.position = camera.position
             point.position = camera.position
-            // spot.setDirectionToTarget(camera.target) 
-            // BABYLON.Color3.HSVtoRGBToRef(COLOR.r, (camera.position.y + 100) / 2, COLOR.b, scene.fogColor);
-            // scene.fogColor = new BABYLON.Color3(new BABYLON.Color3(COLOR.r * Math.min((5+camera.position.y)/10, 1), COLOR.g * Math.min((5+camera.position.y)/10, 1), COLOR.b * ((5+camera.position.y)/10))
+            scene.fogColor = updateFogColor(camera.position)
             scene.render();
         });
 
@@ -83,7 +88,7 @@ var setupScene = function () {
 
         point = new BABYLON.PointLight("sub", new BABYLON.Vector3(0,0,-10), scene)
         point.intensity = 5
-        point.diffuse = new BABYLON.Color3(0.47, 0, 0.70); // bleu
+        point.diffuse = new BABYLON.Color3(0.55, 0.86, 1); // bleu
         point.specular = new BABYLON.Color3(0.1, 0.041, 0.071);
 
         // spot = new BABYLON.SpotLight("spot", new BABYLON.Vector3(0,0,-10), new BABYLON.Vector3(0,0,0), 0.5, 3, scene)
@@ -180,20 +185,6 @@ var setupNoise = function () {
             }
         }
     }
-
-    for(let i = 0; i < RANGE_NOISE[0] - 1; i++) {
-        for(let j = 0; j < RANGE_NOISE[1] - 1; j++) {
-            for(let k = 0; k < RANGE_NOISE[2] - 1; k++) {
-
-                let vIdx = getCubeIdx(i, j, k, noiseInfo)
-
-                let newMesh = baseMeshes[vIdx].createInstance("mesh")
-                newMesh.position = new BABYLON.Vector3(noiseInfo[i][j][k].position.x + SCALE/2, noiseInfo[i][j][k].position.y + SCALE/2, noiseInfo[i][j][k].position.z + SCALE/2)
-                newMesh.isVisible = true
-                noiseInfo[i][j][k].mesh = newMesh
-            }
-        }
-    }
 }
 
 var updateNoise = function (oldPos, newPos) {
@@ -244,3 +235,41 @@ var updateNoise = function (oldPos, newPos) {
         }
     }
 }
+
+var loadEnvMeshes = function () {
+    poissons = {};
+
+    for (let p of meshLUT.POISSONS) {
+      BABYLON.SceneLoader.ImportMesh("", p.path, p.scene, scene, function (newMeshes) {
+        newMeshes.forEach((mesh) => {
+          mesh.isVisible = false;
+          if (mesh.material) {
+            mesh.material.backFaceCulling = false;
+          }
+        });
+  
+        poissons[p.key] = newMeshes;
+      });
+    }
+
+    plantes = {};
+
+    for (let p of meshLUT.PLANTES) {
+      BABYLON.SceneLoader.ImportMesh("", p.path, p.scene, scene, function (newMeshes) {
+        newMeshes.forEach((mesh) => {
+        // mesh.isVisible = false;
+        if (mesh.material) {
+          mesh.material.backFaceCulling = false;
+        }
+        });
+
+        poissons[p.key] = newMeshes;
+      });
+    }
+
+
+    return {
+        POISSONS: poissons,
+        PLANTES: plantes
+    }
+};

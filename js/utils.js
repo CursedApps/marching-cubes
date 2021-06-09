@@ -6,7 +6,7 @@ var calculateNoiseAtIdx = function(cameraPosition, i, j, k) {
     pos = new BABYLON.Vector3(x, y, z);
     value = (noise.simplex3(x, y, z) + 1) / 2;
 
-    return {"position": pos, "value": value, "mesh": undefined};
+    return {"position": pos, "value": value, "mesh": null};
 }
 
 var isOn = function(noiseInfo) {
@@ -30,4 +30,17 @@ var getCubeIdx = function(i, j, k, noiseInfo) {
 
 var roundTo = function(value) {
     return Math.ceil(value/SCALE)*SCALE
+}
+
+var updateFogColor = function(cameraPosition) {
+    
+    if (cameraPosition.y >= 0) {
+        // in the shallow
+        perc = Math.min(cameraPosition.y/100, 1)
+        fogColor = new BABYLON.Color3(0.45, 0.6 + 0.4 * perc, 1 - 0.12 * perc)
+    } else {
+        perc = Math.max(cameraPosition.y/100, -1)
+        fogColor = new BABYLON.Color3(0.45 + 0.38 * perc, 0.6 + 0.6 * perc, 1 + 0.86 * perc)
+    }
+    return fogColor
 }
