@@ -169,7 +169,7 @@ var addUI = function () {
     simBtn = document.createElement("button");
     simBtn.id = "simBtn";
     simBtn.type = "button";
-    simBtn.textContent = "Populate!";
+    simBtn.textContent = "Start!";
     simBtn.style.zIndex = "2";
     simBtn.disabled = true;
     document.body.appendChild(simBtn);
@@ -502,7 +502,6 @@ var setupSimulation = function (data) {
     }
   }
 };
-
 
 var updateSimulation = function(dt) {
     // move assets that are out of bounds
