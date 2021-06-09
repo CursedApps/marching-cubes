@@ -50,12 +50,12 @@ var randomNumber = function(min, max) {
     return Math.random() * (max - min) + min;
 } 
 
-getHeightAtPoint = function(x, z, show = true) {
+var getHeightAtPoint = function(x, z, yCamera, show = false) {
 
-    var origin = new BABYLON.Vector3(x, -1, z)
-    var forward = new BABYLON.Vector3(0, 1, 0)
+    var origin = new BABYLON.Vector3(x, yCamera + RANGE_NOISE[0]*5/2 - 1, z)
+    var forward = new BABYLON.Vector3(0, -1, 0)
 
-    var length = SCALE
+    var length = RANGE_NOISE[0] * 5
 
     var ray = new BABYLON.Ray(origin, forward, length)
 
@@ -66,5 +66,19 @@ getHeightAtPoint = function(x, z, show = true) {
 
     var hit = scene.pickWithRay(ray)
 
-    return hit.distance - 1
+    return hit.distance
+}
+
+var isOOB = function(position, cameraPos) {
+    minBoundX = cameraPos.x - RANGE_NOISE[0]*5/2
+    maxBoundX = cameraPos.x + RANGE_NOISE[0]*5/2
+
+    minBoundY = cameraPos.y - RANGE_NOISE[0]*5/2
+    maxBoundY = cameraPos.y + RANGE_NOISE[0]*5/2
+
+    minBoundZ = cameraPos.z - RANGE_NOISE[0]*5/2
+    maxBoundZ = cameraPos.z + RANGE_NOISE[0]*5/2
+
+    return minBoundX > position.x || position.x > maxBoundX || minBoundY > position.y || position.y > maxBoundY || minBoundZ > position.z || position.z > maxBoundZ
+
 }

@@ -21,11 +21,6 @@ meshLUT = {
       scene: "lanternFish.obj",
     },
     {
-      key: "poissonPuff",
-      path: "assets/fish/puffFish/",
-      scene: "scene.gltf",
-    },
-    {
       key: "poissonRouge",
       path: "assets/fish/redFish/",
       scene: "redFish.obj",

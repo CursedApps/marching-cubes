@@ -56,7 +56,6 @@
                 "type": "PLANTE",
                 "profondeurMin": -50,
                 "profondeurMax": 50,
-                "estMauvaiseHerbe": true,
                 "transformation": [
                     [
                         1.0,
@@ -80,7 +79,6 @@
                 "type": "PLANTE",
                 "profondeurMin": -50,
                 "profondeurMax": 50,
-                "estMauvaiseHerbe": true,
                 "transformation": [
                     [
                         1.0,
