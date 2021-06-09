@@ -504,7 +504,7 @@ var setupSimulation = function (data) {
         min: p.profondeurMin,
         max: p.profondeurMax,
         offset: randomNumber(0,1),
-        amp: randomNumber(0.01, 0.05),
+        amp: randomNumber(0.01, 0.02),
         freq: randomNumber(0.005, 0.01)
       });
     }
