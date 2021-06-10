@@ -30,8 +30,8 @@ const COLOR_START = new BABYLON.Color3(0.45, 0.6, 1);
 const COLOR_DEEP = new BABYLON.Color3(0.07, 0, 0.14);
 const MIN_DEPTH = -100;
 const MAX_DEPTH = 100;
-const N_FISH = 100;
-const N_PLANTS = 200;
+const N_FISH = 75;
+const N_PLANTS = 100;
 
 // Resize the babylon engine when the window is resized
 window.addEventListener(
@@ -417,7 +417,9 @@ var setupSimulation = function (data) {
             pMesh.scaling.z = p.transformation[2][2];
             pMesh.computeWorldMatrix();
             
-            pMesh.position = generatePlantPosition(camera)
+            [meshPosition, groundNormal] = generatePlantPosition(camera)
+            pMesh.position = meshPosition;
+            pMesh.alignWithNormal(groundNormal);
             pMesh.receiveShadows = true;
             shadowGenerator.addShadowCaster(pMesh, true)
 
@@ -475,7 +477,9 @@ var updatePlants = function() {
     for(let p of activePlants) {
         let isVisibleAtDepth = p.max >= camera.position.y && camera.position.y >= p.min;
         if(!isInBounds(p.mesh.position, camera.position)){
-            p.mesh.position = generatePlantPosition(camera);
+            [meshPosition, groundNormal] = generatePlantPosition(camera)
+            p.mesh.position = meshPosition;
+            p.mesh.alignWithNormal(groundNormal);
 
             if(isVisibleAtDepth){
                 for (let c of p.mesh._children)

@@ -121,5 +121,5 @@ var generatePlantPosition = function(camera) {
     
     y = camera.position.y + (RANGE_NOISE[0] * 5/2) - 1 - hit.distance
 
-    return new BABYLON.Vector3(x, y, z)
+    return [new BABYLON.Vector3(x, y, z), hit.getNormal()]
 }
