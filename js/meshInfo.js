@@ -304,17 +304,15 @@ let buildTriangle = function(meshIndex, scene) {
     vertexData.applyToMesh(customMesh, true);
 
     customMesh.isVisible = false;
-    customMesh.freezeWorldMatrix();
+    customMesh = customMesh.createNormals(true);
 
-    customMesh = customMesh.createNormals(true)
-    
     let material = new BABYLON.StandardMaterial(scene);
     material.diffuseColor = new BABYLON.Color3(0.23, 0, 0.68);
-    material.specularColor = new BABYLON.Color3(1, 0.41, 0.71);
-    material.ambientColor = new BABYLON.Color3(0, 0.33, 1);
+    material.specularColor = new BABYLON.Color3(0.36, 0.24, 0.51);
+    material.ambientColor = new BABYLON.Color3(0, 0.30, 0.57);
     customMesh.material = material;
-
     material.backFaceCulling = false;
+    customMesh.receiveShadows = true;
 
     return customMesh;
 }

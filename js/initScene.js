@@ -1,8 +1,9 @@
 var canvas;
 var engine;
-var camera;
-var oldCameraPosition = new BABYLON.Vector3.Zero();
 var scene;
+var camera;
+var shadowGenerator;
+var oldCameraPosition = new BABYLON.Vector3.Zero();
 var isPointerLocked = false;
 
 // environment
@@ -78,6 +79,8 @@ window.onload = function () {
 
         skybox.position = camera.position;
         pointLight.position = camera.position;
+        spot.setDirectionToTarget(camera.target);
+        spot.position = new BABYLON.Vector3(camera.position.x, camera.position.y-2, camera.position.z)
         scene.fogColor = updateFogColor(camera.position);
         scene.render();
     });
@@ -169,20 +172,30 @@ var setupScene = function () {
     setupSkybox();
     setupParticleSystem();
     setupNoise();
-
+    
     pointLight = new BABYLON.PointLight("pointLight", new BABYLON.Vector3(0, 0, -10), scene);
-    pointLight.intensity = 5;
+    pointLight.intensity = 2;
     pointLight.diffuse = new BABYLON.Color3(0.55, 0.86, 1);
     pointLight.specular = new BABYLON.Color3(0.1, 0.041, 0.071);
-
-    // spot = new BABYLON.SpotLight("spot", new BABYLON.Vector3(0,0,-10), new BABYLON.Vector3(0,0,0), 0.5, 3, scene)
-    // spot.falloffType = BABYLON.FALLOFF_PHYSICAL
-
+    
+    let angle = 0.436332
+    let exponent = 30
+    
+    spot = new BABYLON.SpotLight("spot", new BABYLON.Vector3(0,0,-10), new BABYLON.Vector3(0,0,0), angle, exponent, scene)
+    spot.falloffType = BABYLON.FALLOFF_PHYSICAL
+    spot.intensity = 10
+    
     scene.fogMode = BABYLON.Scene.FOGMODE_EXP;
     scene.fogDensity = 0.09;
     scene.fogStart = 10.0;
     scene.fogEnd = 15.0;
     scene.fogColor = new BABYLON.Color3(0.45, 0.94, 1);
+    
+    shadowGenerator = new BABYLON.ShadowGenerator(4096, spot);
+    shadowGenerator.normalBias = 0.02;
+    shadowGenerator.usePercentageCloserFiltering = true;
+
+    scene.shadowsEnabled = true;
 };
 
 var setupSkybox = function () {
@@ -308,12 +321,15 @@ var updateNoise = function (oldPos, newPos) {
 
                 let vIdx = getCubeIdx(i, j, k, noiseInfo);
 
-                let newMesh = baseMeshes[vIdx].createInstance("mesh");
+                let newMesh = baseMeshes[vIdx].createInstance("ground");
                 newMesh.position = new BABYLON.Vector3(
                     noiseInfo[i][j][k].position.x + SCALE / 2,
                     noiseInfo[i][j][k].position.y + SCALE / 2,
                     noiseInfo[i][j][k].position.z + SCALE / 2 
                 );
+
+                newMesh.receiveShadows = true;
+                shadowGenerator.getShadowMap().renderList.push(newMesh);
                 noiseInfo[i][j][k].mesh = newMesh;
             }
         }
@@ -339,6 +355,7 @@ var loadPlant = function (newMeshes, key) {
         parent.addChild(mesh);
         mesh.isVisible = false;
     }
+    
     plantsMeshes[key] = parent;
 };
 
@@ -394,13 +411,15 @@ var setupSimulation = function (data) {
             for (let c of pMesh._children) {
                 c.isVisible = true;
             }
-
+            
             pMesh.scaling.x = p.transformation[0][0];
             pMesh.scaling.y = p.transformation[1][1];
             pMesh.scaling.z = p.transformation[2][2];
             pMesh.computeWorldMatrix();
-
+            
             pMesh.position = generatePlantPosition(camera)
+            pMesh.receiveShadows = true;
+            shadowGenerator.addShadowCaster(pMesh, true)
 
             activePlants.push({
                 mesh: pMesh,
@@ -421,19 +440,24 @@ var setupSimulation = function (data) {
                 c.isVisible = true;
             }
 
+            
+            
             let rot = rand(-Math.PI / 2, Math.PI / 2);
             pMesh.rotation.y = rot
-
+            
             pMesh.scaling.x = p.transformation[0][0];
             pMesh.scaling.y = p.transformation[1][1];
             pMesh.scaling.z = p.transformation[2][2];
             pMesh.computeWorldMatrix();
-
+            
             let _x = rand(camera.position.x - RANGE_NOISE[0] * 5/2, camera.position.x + RANGE_NOISE[0] * 5/2)
             let _y = rand(camera.position.y - RANGE_NOISE[0] * 5/2, camera.position.y + RANGE_NOISE[0] * 5/2)
             let _z = rand(camera.position.z - RANGE_NOISE[0] * 5/2, camera.position.z + RANGE_NOISE[0] * 5/2)
-
+            
             pMesh.position = new BABYLON.Vector3(_x, _y, _z);
+            shadowGenerator.addShadowCaster(pMesh, true);
+            pMesh.receiveShadows = true;
+
             activeFish.push({
                 mesh: pMesh,
                 speed: p.vitesse,

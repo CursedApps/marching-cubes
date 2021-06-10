@@ -117,7 +117,7 @@ var generatePlantPosition = function(camera) {
         z = rand(camera.position.z - RANGE_NOISE[0] * 5/2, camera.position.z + RANGE_NOISE[0] * 5/2);
 
         hit = getHeightAtPoint(x, z, camera.position.y);
-    } while (hit.pickedMesh && hit.pickedMesh.name == "skybox");
+    } while (hit.pickedMesh && hit.pickedMesh.name != "ground");
     
     y = camera.position.y + (RANGE_NOISE[0] * 5/2) - 1 - hit.distance
 
