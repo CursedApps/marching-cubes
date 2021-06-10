@@ -30,7 +30,7 @@ const COLOR_DEEP = new BABYLON.Color3(0.07, 0, 0.14);
 const MIN_DEPTH = -100;
 const MAX_DEPTH = 100;
 const N_FISH = 100;
-const N_PLANTS = 100;
+const N_PLANTS = 200;
 
 // Resize the babylon engine when the window is resized
 window.addEventListener(
@@ -187,7 +187,7 @@ var setupScene = function () {
 
 var setupSkybox = function () {
     let size = (SCALE - 2) * RANGE_NOISE[0]
-    skybox = BABYLON.MeshBuilder.CreateBox("box", { size }, scene);
+    skybox = BABYLON.MeshBuilder.CreateBox("skybox", { size }, scene);
     skybox.size = size;
     let material = new BABYLON.StandardMaterial(scene);
     material.backFaceCulling = false;
@@ -321,7 +321,7 @@ var updateNoise = function (oldPos, newPos) {
 };
 
 var loadFish = function (newMeshes, key) {
-    let parent = new BABYLON.Mesh("dummy", scene);
+    let parent = new BABYLON.Mesh("fishParent", scene);
     let meshes = newMeshes.meshes;
 
     for (let mesh of meshes) {
@@ -332,7 +332,7 @@ var loadFish = function (newMeshes, key) {
 };
 
 var loadPlant = function (newMeshes, key) {
-    let parent = new BABYLON.Mesh("dummy", scene);
+    let parent = new BABYLON.Mesh("plantParent", scene);
     let meshes = newMeshes.meshes;
 
     for (let mesh of meshes) {
@@ -386,7 +386,7 @@ var setupSimulation = function (data) {
 
     for (let p of simPlantes) {
         cpt = 0;
-        while (cpt < 50) {
+        while (cpt < N_PLANTS) {
             cpt++
             let pMesh = plantsMeshes[p.nom].clone("plant");
             pMesh.setEnabled(true);
@@ -400,17 +400,7 @@ var setupSimulation = function (data) {
             pMesh.scaling.z = p.transformation[2][2];
             pMesh.computeWorldMatrix();
 
-            let x, y, z = 0;
-
-            do {
-                x = rand(camera.position.x - RANGE_NOISE[0] * 5/2, camera.position.x + RANGE_NOISE[0] * 5/2);
-                z = rand(camera.position.z - RANGE_NOISE[0] * 5/2, camera.position.z + RANGE_NOISE[0] * 5/2);
-
-                hitDist = getHeightAtPoint(x, z, camera.position.y);
-                y = camera.position.y + (RANGE_NOISE[0] * 5/2) - 1 - hitDist
-            } while (y <= camera.position.y - (RANGE_NOISE[0] * 5/2));
-
-            pMesh.position = new BABYLON.Vector3(x, y, z);
+            pMesh.position = generatePlantPosition(camera)
 
             activePlants.push({
                 mesh: pMesh,
@@ -422,7 +412,7 @@ var setupSimulation = function (data) {
 
     for (let p of simPoissons) {
         cpt = 0;
-        while (cpt < 25) {
+        while (cpt < N_FISH) {
             cpt++;
             let pMesh = poissonsMeshes[p.nom].clone("fish");
             pMesh.setEnabled(true);
@@ -457,55 +447,49 @@ var setupSimulation = function (data) {
     }
 };
 
-var updateSimulation = function(dt) {
+var updatePlants = function() {
     for(let p of activePlants) {
-        if(isOOB(p.mesh.position, camera.position)){
-            let x, y, z = 0;
-            do {
-                x = rand(camera.position.x - RANGE_NOISE[0] * 5/2, camera.position.x + RANGE_NOISE[0] * 5/2);
-                z = rand(camera.position.z - RANGE_NOISE[0] * 5/2, camera.position.z + RANGE_NOISE[0] * 5/2);
+        let isVisibleAtDepth = p.max >= camera.position.y && camera.position.y >= p.min;
+        if(!isInBounds(p.mesh.position, camera.position)){
+            p.mesh.position = generatePlantPosition(camera);
 
-                hitDist = getHeightAtPoint(x, z, camera.position.y);
-                y = camera.position.y + (RANGE_NOISE[0] * 5/2) - 1 - hitDist
-            } while (y <= camera.position.y - (RANGE_NOISE[0] * 5/2));
-
-            p.mesh.position = new BABYLON.Vector3(x, y, z);
-
-            
-            if(camera.position.y > p.max || camera.position.y < p.min ) {
-                for (let c of p.mesh._children) {
-                    c.isVisible = false;
-                }
-            } else {
-                for (let c of p.mesh._children) {
+            if(isVisibleAtDepth){
+                for (let c of p.mesh._children)
                     c.isVisible = true;
-                }
+            } else {
+                for (let c of p.mesh._children)
+                    c.isVisible = false;
             }
         }
     }
+};
 
+var updateFish = function () {
     for(let f of activeFish) {
-        if(isOOB(f.mesh.position, camera.position)){
+        let isVisibleAtDepth = f.max > camera.position.y && camera.position.y > f.min;
+
+        if(!isInBounds(f.mesh.position, camera.position)) {
             let _x = rand(camera.position.x - RANGE_NOISE[0] * 5/2, camera.position.x + RANGE_NOISE[0] * 5/2);
             let _y = rand(camera.position.y - RANGE_NOISE[0] * 5/2, camera.position.y + RANGE_NOISE[0] * 5/2);
             let _z = rand(camera.position.z - RANGE_NOISE[0] * 5/2, camera.position.z + RANGE_NOISE[0] * 5/2);
-
             f.mesh.position = new BABYLON.Vector3(_x, _y, _z);
-
-            if(camera.position.y > f.max || camera.position.y < f.min ) {
-                for (let c of f.mesh._children) {
-                    c.isVisible = false;
-                }
-            } else {
-                for (let c of f.mesh._children) {
+            
+            if(isVisibleAtDepth) {
+                for (let c of f.mesh._children)
                     c.isVisible = true;
-                }
+            } else {
+                for (let c of f.mesh._children)
+                    c.isVisible = false;
             }
-
         } else {
             dt = scene.getEngine().getDeltaTime() / 1000
             totalTime += dt
             f.mesh.position = new BABYLON.Vector3(f.mesh.position.x + f.mesh.forward.x * dt * f.speed, f.mesh.position.y + f.amp*Math.sin(f.freq*totalTime + f.offset), f.mesh.position.z + f.mesh.forward.z * dt * f.speed);
         }
     }
-}
+};
+
+var updateSimulation = function() {
+    updatePlants();
+    updateFish();
+};

@@ -45,14 +45,13 @@ var updateFogColor = function(cameraPosition) {
     return fogColor
 }
 
-
 var rand = function(min, max) { 
     return Math.random() * (max - min) + min;
 } 
 
 var getHeightAtPoint = function(x, z, yCamera, show = false) {
 
-    var origin = new BABYLON.Vector3(x, yCamera + RANGE_NOISE[0]*5/2 - 1, z)
+    var origin = new BABYLON.Vector3(x, yCamera + (RANGE_NOISE[0]*5/2) - 1, z)
     var forward = new BABYLON.Vector3(0, -1, 0)
 
     var length = RANGE_NOISE[0] * 5
@@ -66,10 +65,10 @@ var getHeightAtPoint = function(x, z, yCamera, show = false) {
 
     var hit = scene.pickWithRay(ray)
 
-    return hit.distance
+    return hit
 }
 
-var isOOB = function(position, cameraPos) {
+var isInBounds = function(position, cameraPos) {
     minBoundX = cameraPos.x - RANGE_NOISE[0]*5/2
     maxBoundX = cameraPos.x + RANGE_NOISE[0]*5/2
 
@@ -79,7 +78,7 @@ var isOOB = function(position, cameraPos) {
     minBoundZ = cameraPos.z - RANGE_NOISE[0]*5/2
     maxBoundZ = cameraPos.z + RANGE_NOISE[0]*5/2
 
-    return minBoundX > position.x || position.x > maxBoundX || minBoundY > position.y || position.y > maxBoundY || minBoundZ > position.z || position.z > maxBoundZ
+    return (minBoundX < position.x && position.x < maxBoundX) && (minBoundY < position.y && position.y < maxBoundY) && (minBoundZ < position.z && position.z < maxBoundZ)
 
 }
 
@@ -109,4 +108,18 @@ var onProcessFileCallback = function (file, name, extension) {
         });
     }
     return false;
+}
+
+var generatePlantPosition = function(camera) {
+    let x, y, z = 0;
+    do {
+        x = rand(camera.position.x - RANGE_NOISE[0] * 5/2, camera.position.x + RANGE_NOISE[0] * 5/2);
+        z = rand(camera.position.z - RANGE_NOISE[0] * 5/2, camera.position.z + RANGE_NOISE[0] * 5/2);
+
+        hit = getHeightAtPoint(x, z, camera.position.y);
+    } while (hit.pickedMesh && hit.pickedMesh.name == "skybox");
+    
+    y = camera.position.y + (RANGE_NOISE[0] * 5/2) - 1 - hit.distance
+
+    return new BABYLON.Vector3(x, y, z)
 }
