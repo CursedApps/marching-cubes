@@ -1,10 +1,15 @@
 var calculateNoiseAtIdx = function(cameraPosition, i, j, k) {
+
     let x = roundTo(cameraPosition.x) + SCALE * (i - RANGE_NOISE[0] / 2);
     let y = roundTo(cameraPosition.y) + SCALE * (j - RANGE_NOISE[1] / 2);
     let z = roundTo(cameraPosition.z) + SCALE * (k - RANGE_NOISE[2] / 2);
 
     pos = new BABYLON.Vector3(x, y, z);
-    value = (noise.simplex3(x, y, z) + 1) / 2;
+    if ((-SCALE/2 < x && x < SCALE/2) && (-SCALE/2 < y && y < SCALE/2) && (-SCALE/2 < z && z < SCALE/2)) {
+        value = 0
+    } else {
+        value = (noise.simplex3(x, y, z) + 1) / 2;
+    }
 
     return {"position": pos, "value": value, "mesh": null};
 }
