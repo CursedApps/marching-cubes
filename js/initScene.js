@@ -30,8 +30,8 @@ const COLOR_START = new BABYLON.Color3(0.45, 0.6, 1);
 const COLOR_DEEP = new BABYLON.Color3(0.07, 0, 0.14);
 const MIN_DEPTH = -100;
 const MAX_DEPTH = 100;
-const N_FISH = 75;
-const N_PLANTS = 100;
+const N_FISH = 25;
+const N_PLANTS = 50;
 
 // Resize the babylon engine when the window is resized
 window.addEventListener(
